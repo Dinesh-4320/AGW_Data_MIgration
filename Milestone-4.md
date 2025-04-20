@@ -34,10 +34,10 @@ Example Candidate Systems:
 
 | Database Name       | Purpose                            | Type       | Criticality | Migration Feasibility |
 | ------------------- | ---------------------------------- | ---------- | ----------- | --------------------- |
-| Internal_BI_Reports | Generates monthly performance KPIs | SQL Server | Low         | ✅ Easy               |
-| FieldSensor_Archive | Stores EOD sensor dumps            | PostgreSQL | Medium-Low  | ✅ With sync delays   |
-| RetiredBilling_2020 | Legacy billing backup              | Oracle     | Low         | ✅ Cold migration     |
-| Dev_Tests_DB        | Dev test environment               | MySQL      | Non-prod    | ✅ Low risk           |
+| Internal_BI_Reports | Generates monthly performance KPIs | SQL Server | Low         | Easy                  |
+| FieldSensor_Archive | Stores EOD sensor dumps            | PostgreSQL | Medium-Low  | With sync delays      |
+| RetiredBilling_2020 | Legacy billing backup              | Oracle     | Low         | Cold migration        |
+| Dev_Tests_DB        | Dev test environment               | MySQL      | Non-prod    | Low risk              |
 
 ---
 
@@ -191,14 +191,14 @@ This section helps stakeholders decide if trickle migration is not suitable and 
 | Schema needs major rework (e.g., multi-tenant refactor) | Replatform to Azure SQL / CosmosDB    | Redesign schema during migration for modernization.                  |
 | Custom/Flat-file DBs (e.g., SQLite, Access)             | Azure File Sync or Azure Data Factory | These are non-relational, best handled via file or batch sync.      |
 
-### ✅ Use Trickle when:
+### Use Trickle when:
 
 * DBs are relational (SQL, Oracle, PostgreSQL).
 * You want minimal downtime.
 * Schema is compatible with Azure target services.
 * Data changes can be tracked and synced.
 
-### ❌ Consider Other Approaches when:
+### Consider Other Approaches when:
 
 * DB is very small.
 * Coupled tightly with legacy apps.
