@@ -33,7 +33,7 @@ We're migrating **On-Premise applications** of a water-based company to **Azure 
 | Azure Arc (Optional)     | Hybrid/on-prem integration           |
 
 ---
-## Step-by-Step Migration Plan (Slight Re-platforming – Non-Critical Apps)
+## Step-by-Step Migration Plan
 
 This plan is structured to be followed in phases, ensuring minimal downtime, controlled change, and successful validation.
 
