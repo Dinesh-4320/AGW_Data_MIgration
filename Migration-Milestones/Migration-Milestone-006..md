@@ -2,16 +2,21 @@
 
 ---
 
-### Questions to Ask the Stakeholder
+### Stakeholder Considerations for Migrating Critical Databases and Data
 
-| Question                                                              | Assumption for a typical large water management company               |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| What databases support customer-facing or real-time operational apps? | Billing, telemetry, SCADA, sensor streaming, compliance tracking      |
-| Are these databases subject to strict SLAs or compliance mandates?    | Yes — high availability, real-time access, and full data integrity   |
-| What is the maximum allowable downtime?                               | Zero-downtime or at most a few seconds during cutover                 |
-| Are there specific performance benchmarks to retain post-migration?   | Yes — low-latency, high IOPS, concurrent connection support          |
-| Are disaster recovery and failover plans tested regularly?            | Yes — enforced by regulatory audits                                  |
-| Can the DBMS type change, or must it remain the same?                 | Must remain the same (rehost-only constraint) for contractual reasons |
+| Aspect                                     | Recommendation / Mentor Guidance                                                                                                                                                  | Risk / Gap Identified                                                                                        |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Definition of Critical Databases** | Includes billing systems, SCADA, real-time telemetry, sensor data streaming, and compliance tracking — all customer-facing or operation-critical systems.                        | Inaccurate classification may disrupt mission-critical services, leading to SLA violations.                  |
+| **Downtime Tolerance**               | Zero-downtime migration is mandatory. Any cutover should occur with seconds-level impact using replication and phased sync.                                             | Extended downtime can lead to financial penalties, regulatory issues, and reputational damage.               |
+| **Migration Approach**               | Use rehost strategy with continuous data replication via Azure Database Migration Service (Online Mode) . Perform cutover only after full validation.           | Errors during replication or improper cutover sequencing can cause data inconsistency or application errors. |
+| **Database Engine Compatibility**    | No DBMS change is allowed — must retain existing database types (e.g., Oracle, SQL Server) to meet contractual and system integration constraints.                               | Attempting DBMS conversion introduces unacceptable risk and downstream integration failures.                 |
+| **Performance Requirements**         | Ensure post-migration setup supports low-latency access, high IOPS, and concurrent users — benchmark against current metrics. Use Azure SQL MI or Oracle on Azure.     | Under-provisioned resources can lead to performance degradation and SLA breaches.                            |
+| **Failover and DR Strategy**         | Implement geo-redundancy with Active-Passive or Active-Active replication. Validate failover scenarios pre-migration using Azure Site Recovery + Azure Backup. | Absence of DR testing increases the likelihood of unplanned downtime post-migration.                         |
+| **Data Consistency Guarantees**      | Use transactional consistency (CDC or change tracking) to ensure data integrity. Incorporate validation steps at each sync checkpoint.                                          | Data drift between source and destination if validation and change tracking are not implemented.             |
+| **Security and Compliance**          | Enforce encryption-at-rest and in-transit, RBAC, key vault integration, and audit logging per compliance standards (e.g., ISO, GDPR).                                   | Missing security controls can trigger regulatory penalties and data breach risks.                            |
+| **Cutover Planning**                 | Schedule during lowest traffic windows (e.g., midnight) and conduct rehearsals in pre-prod. Use rollback procedures if sync fails.                                                | Poor cutover planning can lead to irreversible downtime and data corruption.                                 |
+| **Testing and Monitoring**           | Pre-migration testing must cover functionality, load, failover, and performance. Post-migration monitoring with Azure Monitor + Log Analytics is essential.               | Gaps in testing or observability can leave issues undetected until after production impact.                  |
+| **Source of Guidance**               | Recommendations are based on mentor inputs and proven field strategies for regulated environments — not posed as stakeholder questions.                                          | Stakeholder confirmation is still advised during implementation to ensure business alignment.                |
 
 ---
 

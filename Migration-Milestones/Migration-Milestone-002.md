@@ -1,47 +1,40 @@
-# Milestone 2: Migrating Archival Data
+# Milestone 2: Migrating Archival Data                                            |
 
-### Things to ask the stakeholder:
+### Stakeholder Considerations for Archival Data Migration
 
-| Question                                                        | Assumption for typical large water management company                                                                      |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| How is the archival data stored on-premise?                     | SAN/NAS appliances with minimal automation and Legacy data often exists in CSV, XML                                        |
-| How long does the archival data needs to be retained?           | 5 to 15 years                                                                                                              |
-| What categories or types of archival data exist?                | Historical sensor readings , maintenance logs ,  billing records ,  compliance reports etc..                               |
-| How frequently is archival data accessed?                       | Very rarely — mostly for audits ,  legal inquiries , or  historical analysis . Possibly once or twice a year per dataset. |
-| What is the total estimated size of archival data?              | Could range from 10–100 TB                                                                                                 |
-| Does AGW already have a retention policy?                       |                                                                                                                             |
-| How is backup currently handled for archival data?              |                                                                                                                             |
-| Is there a need to transform or reformat data during migration? | Yes — legacy formats like CSV/XML may need transformation to Parquet/JSON for analytics                                    |
-| What security and access controls are currently in place?       | Likely basic file share permissions with minimal  encryption, MFA.                                                         |
+| Aspect                               | Recommendation / Mentor Guidance                                                                                                                            | Risk / Gap Identified                                                                         |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Current Storage Medium**     | Archival data is stored on SAN/NAS appliances with minimal automation.                                                                                      | Legacy infrastructure with limited scalability or integration with cloud-native services.     |
+| **Data Formats**               | Predominantly CSV/XML; transformation to Parquet/JSON is**strongly recommended** for analytics and efficiency.                                        | Retaining legacy formats hinders analytics, increases storage, and reduces performance.       |
+| **Retention Period**           | Typically ranges between 5–15 years, based on compliance requirements.                                                                                     | Retention timelines may not be clearly documented or enforced.                                |
+| **Data Categories**            | Includes historical sensor readings, maintenance logs, billing records, and compliance documents.                                                           | Lack of classification may lead to over-retention or loss of critical data.                   |
+| **Access Frequency**           | Data is accessed very rarely — typically for audits, legal needs, or long-term trend analysis.                                                             | Over-provisioning resources for infrequent access increases operational cost.                 |
+| **Total Data Volume**          | Estimated between 10–100 TB, based on similar water utility organizations.                                                                                 | Storage growth without management may increase cost and complicate migration.                 |
+| **Retention Policy**           | Appears to be undocumented or loosely followed; creation and enforcement of retention rules is essential.                                                   | Absence of formal policies leads to regulatory non-compliance and operational inefficiencies. |
+| **Backup Strategy**            | Not clearly defined; backup and disaster recovery processes must be reviewed and integrated into cloud policies.                                            | Incomplete backups pose a high risk of data loss during or post migration.                    |
+| **Access Controls & Security** | Existing controls are likely basic — typically limited to file share permissions; recommend encryption, role-based access, and MFA for sensitive datasets. | Weak security increases risk of unauthorized access, data leakage, and compliance violations. |
+| **Transformation Needs**       | Transformation from CSV/XML to Parquet/JSON must be part of the migration pipeline; automated ETL processes should be implemented.                          | Manual or delayed transformation reduces cloud compatibility and analytics readiness.         |
+| **Source of Guidance**         | Recommendations are based on mentor discussions and internal reviews — these are guiding inputs, not posed as open-ended questions to stakeholders.        | Lack of stakeholder validation may require future alignment and feedback loops.               |
 
 ### Archival Data Migration Plan
 
 #### Chosen Azure Technologies
 
-Based on the above, we recommend:
+Based on stakeholder discussions and mentor guidance, we recommend:
 
 | Requirement                       | Chosen Azure Service or Tier                                |
 | --------------------------------- | ----------------------------------------------------------- |
 | Cost-effective long-term storage  | Azure Blob Storage - Archive Tier                           |
 | Medium retention, semi-active use | Azure Blob Storage - Cold Tier                              |
-| Bulk upload of large datasets     | Azure Data Box (100 TB Physical Device)                     |
+| Secure upload over private link   | Azure ExpressRoute                                          |
 | Data lifecycle management         | Azure Blob Lifecycle Management Policies                    |
 | Format optimization               | Azure Data Factory (for converting CSV/XML to Parquet/JSON) |
 
 ---
 
-### Migration Approach: Big Bang vs Phased
+### Migration Approach:
 
-For AGW, we recommend a **phased migration** approach, not a big bang approach.
-
-#### Why not Big Bang?
-
-- Big bang means moving all data in one go, often during a fixed downtime window.
-- Considering AGW's archival data is large (up to 100 TB), scattered, and not actively used.
-- A big bang needs massive network or logistics coordination and has higher risk.
-- If one issue happens (e.g. data format error, failed batch), entire migration delays.
-
-#### Why Phased is Better?
+For AGW, we recommend a **phased migration** approach.
 
 - Phased migration splits data by category (e.g. sensor logs, billing) or by year.
 - Each phase can be tested, transformed, and verified before moving to the next.
@@ -80,7 +73,7 @@ Example lifecycle policy setup:
 - After 10 years: delete if not accessed (subject to retention rules).
 - Policies can be container- or metadata-based (e.g. move only if tag = "archive").
 
-This helps minimize manual intervention while aligning with compliance goals. While creating and running the lifecycle management policies themselves are free, one will be charged for the operations involved in moving blobs between different storage tiers.
+This helps minimize manual intervention while aligning with compliance goals.
 
 #### Step 3: Data Transformation and Format Optimization
 
@@ -92,35 +85,19 @@ Use Azure Data Factory (ADF) to transform and optimize data before ingestion:
 - Store only transformed (final) version in Blob Storage. Intermediate files processed by ADF are temporary and deleted post-transformation.
 - Azure Data Factory is billed per activity run, data volume processed, and data movement. The cost remains low when used only for batch transformation.
 
-ADF is not a storage service—it only prepares and moves data. The final output (Parquet) is stored in Azure Blob.
+#### Step 4: Migrate Data via ExpressRoute (Off-Peak)
+
+As archival data is **not business-critical**, it can be uploaded securely via **ExpressRoute** during off-peak hours without business disruption.
+
+- Use **AzCopy** for high-throughput parallel uploads.
+- Schedule transfers during nights or weekends to reduce bandwidth contention.
+- Compress data before transfer to reduce time and cost.
+- Integrate with ADF pipelines if transformation is needed before ingestion.
+- Monitor upload performance and validate integrity using checksum-based verification.
 
 ---
 
-### Step 4: Migrate Data
-
-Depending on data size, different migration methods are recommended.
-
-**A. For Large Datasets (>10 TB):**
-
-- Use Azure Data Box (e.g. 100 TB capacity, ~80 TB usable).
-- Workflow:
-  1. Order Data Box via Azure portal.
-  2. Receive encrypted device at AGW datacenter.
-  3. Copy bulk data from SAN/NAS using standard tools (e.g. Robocopy, rsync).
-  4. Optional: run transformation jobs (CSV to Parquet) before or after copy.
-  5. Ship device back to Microsoft.
-  6. Microsoft ingests data securely into specified Azure Blob containers.
-- The transfer is encrypted end-to-end and tracked via portal.
-
-**B. For Small Datasets or Pilot Runs (<5 TB):**
-
-- Use internet-based upload methods:
-  - **AzCopy**: CLI tool for large file batch uploads.
-  - **Azure Storage Explorer**: GUI for manual upload/management.
-- Pre-process and compress data to reduce transfer time.
-- Recommended for early validation, metadata tagging tests, or automation script development.
-
-**C. Verification and Logging:**
+### Verification and Logging
 
 - Use MD5 checksum or Azure import logs to confirm file integrity.
 - Enable Azure Monitor and diagnostic logs to track access, updates, and billing.
@@ -142,7 +119,7 @@ Depending on data size, different migration methods are recommended.
 | --------------------- | ----------------------------- | ---------------------------------------------------- |
 | Storage Setup         | Azure Blob (Cool + Archive)   | Low-cost, scalable, tiered storage                   |
 | Lifecycle Management  | Azure Blob Lifecycle Policies | Auto-tiering based on age and access pattern         |
-| Migration Method      | Azure Data Box, AzCopy        | Secure and fast transfer (offline or online)         |
+| Migration Method      | ExpressRoute + AzCopy         | Secure, private, scheduled during off-peak hours     |
 | Transformation        | Azure Data Factory            | Optimizes format, improves queryability              |
 | Environmental Benefit | Retire old SAN/NAS hardware   | Reduced power use, Microsoft’s green infrastructure |
 

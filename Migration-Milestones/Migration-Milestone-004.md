@@ -1,17 +1,21 @@
 # **Milestone 4: Migrating Non-Critical Databases and Data**
 
----
+---                                        |
 
-### Questions to Ask the Stakeholder
+### Stakeholder Considerations for Non-Critical Database Migration
 
-| Question                                                        | Assumption for a typical large water management company                                       |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| What is a "non-critical" database for AGW?                      | Databases with low SLA, infrequent access, used for reports, internal tools, or archived logs |
-| Are any of these databases shared across apps or services?      | Yes — legacy shared databases (Oracle/Tibco/MQ etc.)                                         |
-| What database types are in use (e.g. SQL Server, Oracle, etc.)? | Mix of SQL Server, Oracle, MySQL, PostgreSQL, possibly some embedded DBs                      |
-| Are there integration or sync dependencies (ETL/BI reports)?    | Yes — some serve batch pipelines for reporting systems                                       |
-| Are there ongoing read/write operations?                        | Mostly read-heavy with occasional writes (e.g., end-of-day data dumps)                        |
-| Do these contain any personally identifiable or sensitive data? | Possibly — must assess for compliance (e.g., GDPR)                                           |
+| Aspect                                   | Recommendation / Mentor Guidance                                                                                                                                         | Risk / Gap Identified                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| **Definition of Non-Critical DBs** | Databases not involved in real-time workflows, lacking SLAs, with low-frequency access or serving internal BI tools and compliance dashboards.                           | In absence of a CMDB, identification must rely on stakeholder inputs and usage monitoring.    |
+| **Common Characteristics**         | Not accessed by more than 5 users per week, updated no more than once daily, tagged as archival or internal-only during app review.                                      | Misclassification may delay dependent services or reports post-migration.                     |
+| **Database Types**                 | SQL Server, Oracle, MySQL, PostgreSQL, and some embedded/legacy Tibco-MQ based databases. Migration targets must support heterogeneous database engines.                 | Compatibility or licensing challenges may arise if platforms are outdated or vendor-locked.   |
+| **Integration Dependencies**       | Many serve batch-mode ETL pipelines; must document these dependencies explicitly before migration to avoid downstream impact.                                            | Unidentified reporting jobs or sync scripts may break silently post-migration.                |
+| **Write Frequency**                | Most are read-heavy with batch or end-of-day (EOD) dumps. Suitable for phased trickle migration with minimal sync lag tolerance.                                         | Any deviation from expected write frequency introduces risk of data loss during migration.    |
+| **Shared Server Hosting**          | Many legacy databases are co-hosted on shared infrastructure. Use isolation techniques (e.g., VM snapshots, containerization) during migration planning.                 | Shared environments introduce cascading risks if one system’s migration affects others.      |
+| **Security & Compliance**          | Evaluate for any PII or sensitive data. Mask or anonymize datasets where necessary, and ensure Azure-native encryption and role-based access is enforced post-migration. | Compliance risks under GDPR or internal audit may surface if classification is incomplete.    |
+| **Migration Methodology**          | Use Azure Database Migration Service (DMS) with trickle migration for continuous sync. Cold cutover scheduled during off-hours to minimize disruption. | Improper cutover timing or sync gaps may affect data integrity or application availability.   |
+| **File-Based Dependencies**        | Use Azure File Sync for any flat-file dependencies (e.g., logs, CSV exports) during DB migration.                                                                | Incomplete file sync may affect scripts or data pipelines relying on legacy export locations. |
+| **Source of Guidance**             | All recommendations are based on mentor-led internal reviews and field-tested strategies. Decisions are informed — not posed as stakeholder questions.                  | Future stakeholder feedback may still be required for validation and iterative planning.      |
 
 ---
 
