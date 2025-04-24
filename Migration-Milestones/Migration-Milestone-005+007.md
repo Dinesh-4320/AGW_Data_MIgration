@@ -106,8 +106,19 @@ This phase involves the actual implementation of the Aazure cloud migration stra
     - Fully transition compute, storage, and identity to Azure. Both Active and Cold standby should be handled in Azure. Decommission on-prem infrastructure with minimal loss.
 
 5. ##### Optimize for Cost, Performance, and Security
-Steps: Implement Azure Cost Management + Advisor. Employ Auto-scaling feautures during peak hours. Scale Down idle resources based on monitoring feeds. Enforce security ensuring compliance and regulations,
+    - Employ Auto-scaling feautures during peak hours. Scale Down idle resources based on monitoring feeds. Enforce security ensuring compliance and regulations
+---
+### Rollback Plan
+1. ##### Pre-migration preparation. 
+    - This involves taking full system and database backups of the source environment, including all configuration files, environment variables, and secrets. Snapshots of virtual machines or container images should also be created. All the snapshots should be tagged to keep track of versions and rollback implementation. 
+    - It is also important to retain full access to DNS management tools during and after the migration.
 
+2. ##### Parallel System Setup
+    - The original application environment should be kept operational—preferably in a read-only state—until the Azure deployment is fully validated. Smoke tests covering all critical functionality (like login, read/write operations, and external service integrations) must be performed on the Azure environment. 
+
+
+3. ##### Rollback Triggers
+    - These include unresponsiveness of the application, failures in authentication or key integrations, significant performance degradation, or any form of data inconsistency or corruption. When any of these issues are detected, rollback must be initiated without delay. The first step is to revert DNS records to point back to the original infrastructure.
 ---
 ### Benefits of migrating to Azure
 - ##### Scalability with Containers & VMs: 
